@@ -165,10 +165,13 @@ function createBot() {
     const autoAuth = config.utils ? config.utils['auto-auth'] : null;
     if (autoAuth && autoAuth.enabled && autoAuth.password) {
       setTimeout(() => {
-        bot.chat(`/register ${autoAuth.password} ${autoAuth.password}`);
+        bot.chat(`/register ${autoAuth.password}${autoAuth.password}`);
         bot.chat(`/login ${autoAuth.password}`);
       }, 1500);
     }
+
+    // Always maintain Crouch (Sneak) position
+    bot.setControlState('sneak', true);
 
     // Anti-AFK behaviors
     startAntiAfkBehaviors();
@@ -177,7 +180,7 @@ function createBot() {
   bot.on('chat', (username, message) => {
     if (username === bot.username) return;
     if (config.utils && config.utils['chat-log']) {
-      console.log(`[Chat] <${username}> ${message}`);
+      console.log(`[Chat] <${username}>${message}`);
     }
   });
 
@@ -212,16 +215,13 @@ function startAntiAfkBehaviors() {
   const movement = config.movement;
   const utils = config.utils;
 
-  // Sneak anti-AFK
-  if (utils && utils['anti-afk'] && utils['anti-afk'].enabled && utils['anti-afk'].sneak) {
-    setInterval(() => {
-      if (!bot || !botState.connected) return;
-      bot.setControlState('sneak', true);
-      setTimeout(() => bot.setControlState('sneak', false), 1000);
-    }, 4000);
-  }
+  // Enforce permanent Crouch state continuously
+  setInterval(() => {
+    if (!bot || !botState.connected) return;
+    bot.setControlState('sneak', true);
+  }, 1000);
 
-  // Random Jumping
+  // Random Jumping (Disabled to preserve Crouch)
   if (movement && movement['random-jump'] && movement['random-jump'].enabled) {
     setInterval(() => {
       if (!bot || !botState.connected) return;
@@ -240,17 +240,7 @@ function startAntiAfkBehaviors() {
     }, movement['look-around'].interval || 5000);
   }
 
-  // Repeating Chat Messages
-  if (utils && utils['chat-messages'] && utils['chat-messages'].enabled) {
-    const chatConfig = utils['chat-messages'];
-    let messageIndex = 0;
-    
-    setInterval(() => {
-      if (!bot || !botState.connected || !chatConfig.messages.length) return;
-      bot.chat(chatConfig.messages[messageIndex]);
-      messageIndex = (messageIndex + 1) % chatConfig.messages.length;
-    }, (chatConfig['repeat-delay'] || 30) * 1000);
-  }
+  // Chat messaging is disabled
 }
 
 // Start the bot
